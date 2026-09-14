@@ -8,5 +8,14 @@ Thumbs.db
 __pycache__/
 *.pyc
 
-# Test artifacts
-scripts/test_sync/
+# Local research data and generated artifacts
+panel_factory/data/raw/*
+!panel_factory/data/raw/.gitkeep
+panel_factory/data/features/*
+!panel_factory/data/features/.gitkeep
+panel_factory/data/panels/*
+!panel_factory/data/panels/.gitkeep
+
+# Project analysis outputs
+projects/**/analysis/outputs/*
+!projects/**/analysis/outputs/.gitkeep

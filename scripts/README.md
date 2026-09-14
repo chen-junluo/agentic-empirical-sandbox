@@ -1,94 +1,77 @@
-# Sync CLAUDE.md from Upstream
+# Template updater
 
-## 使用场景
+The updater performs a manual, allowlisted three-way merge from `upstream/main` using only the Python standard library.
 
-当你 fork 了这个 repo 并在本地工作时，可以用这个脚本同步上游的 `CLAUDE.md` 更新，同时保留你自己的规则。
-
----
-
-## 快速开始
-
-### 1. 添加 upstream remote（首次）
+## Commands
 
 ```bash
-git remote add upstream https://github.com/原作者/repo名.git
+python3 scripts/update_template.py check
+python3 scripts/update_template.py apply
 ```
 
-### 2. 运行同步脚本
+Both commands fetch `upstream/main`. `check` reads Git objects and the working tree but does not change working-tree files or updater state. `apply` repeats the full preflight and writes only when no managed file has a conflict.
+
+If `upstream` is missing, the updater stops and prints the setup command. It never creates or changes remotes. Confirm the public repository URL before replacing the label in:
 
 ```bash
-./scripts/sync-claude-md.sh
+git remote add upstream CONFIRMED_PUBLIC_REPOSITORY_URL
 ```
 
-### 3. 检查并提交
+## Managed scope
 
-```bash
-git diff                    # 查看变更
-git add .                   # 如果满意
-git commit -m "Sync CLAUDE.md from upstream"
-```
+[`template_manifest.json`](template_manifest.json) is an explicit path allowlist. The updater reads the local manifest for the current run and never recursively scans for more managed files. This prevents a new upstream manifest from silently expanding the current update's scope.
 
----
+The allowlist covers public instruction files, Claude Code adapters, READMEs, updater files, public documents, and named template placeholders. Everything else is protected, including:
 
-## 工作原理
+- user-added and unlisted files;
+- actual research data and `panel_factory/data/` contents other than named `.gitkeep` placeholders;
+- user-created or populated projects beyond explicitly named template placeholders;
+- archive materials;
+- instruction content beginning with `## User-Specific Rules`.
 
-### 文件结构
+## Three-way decisions
 
-每个 `CLAUDE.md` 分为两部分：
+The baseline is the `upstream_commit` recorded in `.agentic-sandbox-state.json`. Before the first successful apply, the updater uses the Git merge base between `HEAD` and `upstream/main`; it stops if neither baseline is available. State also records the allowlist used for that apply. If an accepted manifest update introduces a new path, the following run treats it as newly managed, so an upstream placeholder can be added without letting the prior run expand its scope.
 
-```markdown
-# CLAUDE.md
+- `unchanged`: upstream managed content has not changed and local managed content still matches, or the local file already matches upstream.
+- `safe update`: upstream changed while local managed content still equals the baseline.
+- `add`: an allowlisted upstream path is new and absent locally.
+- `conflict`: local and upstream managed content both changed relative to the baseline, a local path is not a regular file, a managed path or one of its parent directories is a symbolic link, or an instruction marker is invalid.
+- `protected`: a local-only change or pre-existing local path will be left untouched.
+- `manual review`: upstream removed or renamed a path; the updater will not delete, move, or rename the local file.
 
-...upstream 维护的通用规则...
-
----
----
-## User-Specific Rules
-
-<!-- 在此添加你的项目特定规则 -->
-```
-
-- `## User-Specific Rules` 之前：upstream 规则，会被同步覆盖
-- `## User-Specific Rules` 之后：你的自定义规则，永远不会被覆盖
-
-### 同步逻辑
-
-脚本会：
-1. 从 upstream 拉取最新的 `CLAUDE.md`
-2. 提取你本地的 `## User-Specific Rules` 部分
-3. 用 upstream 的内容替换 marker 之前的部分
-4. 保留你的 user-specific 部分不变
-
----
-
-## 高级用法
-
-### 指定不同的 remote 或 branch
-
-```bash
-./scripts/sync-claude-md.sh origin main
-./scripts/sync-claude-md.sh upstream dev
-```
-
-### 添加自己的规则
-
-在任何 `CLAUDE.md` 的 `## User-Specific Rules` 部分下添加：
+For instruction files, only bytes before the exact marker are compared:
 
 ```markdown
 ## User-Specific Rules
-
-- 我的项目用 `polars` 而不是 `pandas`
-- 所有回归用 `fixest` 包
-- 图表输出到 `output/figures/` 而不是 `figures/`
 ```
 
-这些规则会在同步时被保留。
+The marker and every byte after it come from the local file unchanged. Local, baseline, and upstream versions must each contain exactly one marker whenever that version exists. Missing or repeated markers are conflicts.
 
----
+The updater does not use symlinks for synchronization and never follows them for managed local paths. If a managed path itself, or any repository-relative parent directory on that path, is a symlink, both `check` and `apply` report a conflict. Because conflicts fail the complete preflight, `apply` leaves every working-tree file and the updater state unchanged.
 
-## 注意事项
+The local manifest and updater state are trust metadata, so a symlink at either of those paths is rejected before its target is read.
 
-- 同步前建议先 commit 当前工作，以便回滚
-- 同步后用 `git diff` 检查变更是否符合预期
-- 如果 upstream 没有某个 `CLAUDE.md` 文件，会跳过不处理
-- 脚本只修改 `CLAUDE.md` 文件，不影响其他内容
+If any conflict exists, `apply` changes no working-tree file and does not update state. Otherwise it stages all output in same-directory temporary files, atomically replaces `safe update` and `add` targets, records the fetched commit, and asks the user to run `git diff`. It never commits.
+
+Upstream deletions remain local and are reported once for manual review. Advancing the baseline after a conflict-free apply does not delete that protected local copy.
+
+## Tests
+
+```bash
+python3 scripts/test_update_template.py
+```
+
+The integration suite creates isolated temporary Git repositories. It covers no-op checks, safe updates, conflicts and zero-write aborts, byte-preserved instruction suffixes, protected user content, new placeholders, upstream deletions, idempotency, invalid markers, managed-path symlink conflicts, and trust-metadata symlink rejection. It does not modify this repository.
+
+## Pipeline dependency map
+
+The dependency-map generator reads structured headers from every `panel_factory/src/**/build_*.py` file. It validates artifact contracts and generates the Mermaid graph, artifact table, and detailed contracts in `panel_factory/documents/pipeline_dependency_table.md`.
+
+```bash
+python3 scripts/update_dependency_docs.py check
+python3 scripts/update_dependency_docs.py write
+python3 scripts/test_update_dependency_docs.py
+```
+
+`check` is read-only and exits nonzero when a header is invalid or the generated map is stale. `write` validates the complete graph before atomically replacing the map. Treat builder headers as the canonical dependency metadata and do not hand-edit the generated map.

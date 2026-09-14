@@ -1,9 +1,25 @@
-# - 生成某个 reusable compact feature table
-#   - 输入：某个 intermediate 或 raw-like source
-#   - 输出：一个 keyed compact feature artifact
-#   - grain、merge keys、output path 在实现时明确写清
+# Artifact:    feature/question_example_feature
+# Grain:       question
+# Merge Keys:  question_id
+#
+# Inputs:
+#   - question_intermediate  # data/features/question_intermediate.csv
+#
+# Output:      data/features/question_example_feature.csv
+#   - Index: question_id
+#   - Core: none
+#   - Derived: example_feature
+#
+# Logic:
+#   - Read the reusable question-level intermediate.
+#   - Build one example question-level feature without mutating the intermediate.
 
 PIPELINE_SPEC = {
+    "artifact": "feature/question_example_feature",
     "kind": "feature",
-    "notes": "Fill in inputs, outputs, grain, and merge_keys when implementing.",
+    "grain": "question",
+    "merge_keys": ["question_id"],
+    "inputs": ["question_intermediate"],
+    "output": "data/features/question_example_feature.csv",
+    "notes": "Replace the placeholder logic while preserving this artifact contract.",
 }

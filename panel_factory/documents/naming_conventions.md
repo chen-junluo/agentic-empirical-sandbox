@@ -2,7 +2,7 @@
 ## 1. scope
 - 作用
   - 沉淀 `panel_factory/` 常用的命名规范，减少文件命名、artifact naming、变量命名上的反复沟通。
-  - 这是参考文档，不是 rule source；规则仍以 `CLAUDE.md` 为准。
+  - 这是参考文档，不是 rule source；规则仍以 `AGENTS.md` 为准。
 - 适用范围
   - `src/features/`
   - `src/panels/`
@@ -17,11 +17,11 @@
   - `panel` builder：`build_xxx_panel.py`
 - artifact outputs
   - `intermediate` outputs：优先放在 `data/features/`，文件名与 builder 的核心 artifact name 对齐。
-  - `feature` outputs：优先放在 `data/features/`，使用稳定、可复用的 artifact name。
+  - `feature` outputs：必须放在 `data/features/`，并严格命名为 `{grain}_{feature_name}.csv`。
   - `panel` outputs：放在 `data/panels/`，文件名应直接对应最终 panel 名称。
 - naming defaults
   - 优先延续已有 `artifact names`、`merge keys`、`output boundaries`。
-  - 如果是 migration 不要为了整洁/体现grain随意重命名。
+  - migration 中不要只为整洁而随意重命名；但 feature 一旦纳入当前 `panel_factory` contract，就必须遵守 `{grain}_{feature_name}.csv`，并联动更新所有 downstream consumers。
   - 如果重命名会影响下游 consumer，必须联动更新。
 
 ---
@@ -40,5 +40,5 @@
 ## 4. maintenance rule
 - 如果命名规范有新增、修正、或沉淀：
   - 先更新本文件。
-  - 再在相关 `CLAUDE.md` 中补充或调整 reference。
-  - 如果本文件与 `CLAUDE.md` 冲突，以 `CLAUDE.md` 为准，并尽快修正文档。
+  - 再在相关 `AGENTS.md` 中补充或调整 reference。
+  - 如果本文件与 `AGENTS.md` 冲突，以 `AGENTS.md` 为准，并尽快修正文档。

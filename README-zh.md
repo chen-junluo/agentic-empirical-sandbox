@@ -1,164 +1,123 @@
-# smart_research_folder_template
+# agentic-empirical-sandbox
+
 [English README](README.md)
 
-一个轻量的 research workspace template，用来把 legacy analysis 重建成更清晰、可复用的结构。
+一个紧凑、agent-native 的 empirical research workspace template，支持 Codex 和 Claude Code 重建 legacy research workflow。
 
-## 这个 template 用来做什么
-这个仓库是一个 mini research workspace，适合从杂乱的 legacy materials 开始的项目，比如长 `.Rmd`、旧 scripts、旧 panel、零散 writeup 文件。
+## 用途
 
-它把工作默认拆成三块：
+sandbox 将 legacy sources、可复用 data construction 和 project-specific research 分开：
 
-- `Archive/`：存放 legacy materials 和旧 artifacts，作为 reconstruction source
-- `panel_factory/`：shared data pipeline，用来重建 reusable data artifacts
-- `Projects/`：downstream research spaces，放 project-specific analysis 和 writeup
+- `archive/`：作为 reconstruction source 的旧 scripts、panels、outputs 和 writeups。
+- `panel_factory/`：围绕 `intermediate + features -> panel` 组织的 shared data construction。
+- `projects/`：下游 analysis、figures、tables 和 writing。
 
-## 核心思路
-这个 template 围绕一条结构规则组织：
-
-- 把 panel 理解成 `intermediate + features -> panel`
-
-不要反复在一个大表上持续 mutate，而是把三层分开：
-
-- `intermediate`：可复用的 base tables
-- `features`：compact keyed feature tables
-- `panel`：通过 late merge 组装出的 final panel
-
-这样做有几个直接好处：
-
-- 同一个 intermediate 可以服务多个 features
-- 同一个 feature table 可以服务多个 panels 或 projects
-- project-specific logic 不会混进 shared pipeline
-- 可以逐步迁移 legacy workflow，不需要一开始就全量重写
+workflow 不反复 mutate 一个大表，而是分离 reusable base intermediates、compact keyed features 和通过 late merge 生成的 final panels。这样可以逐步重建 legacy workflow，并避免 project-specific logic 混入 shared pipeline。
 
 ## 仓库结构
+
 ```text
-smart_research_folder_template/
-├── Archive/
+agentic-empirical-sandbox/
+├── AGENTS.md
+├── CLAUDE.md
+├── archive/
+│   ├── AGENTS.md
+│   └── CLAUDE.md
 ├── panel_factory/
+│   ├── AGENTS.md
+│   ├── CLAUDE.md
 │   ├── data/
 │   ├── documents/
 │   ├── notebooks/
 │   └── src/
-│       ├── features/
-│       ├── panels/
-│       └── utils/
-└── Projects/
-    └── project_template_IT_investment/
-        ├── 202405 ICIS/
-        │   ├── analysis/
-        │   │   ├── R/
-        │   │   ├── Stata/
-        │   │   ├── finalize/
-        │   │   └── outputs/
-        │   └── writeup/
-        │       ├── IT Investment - 202405 ICIS - WriteUp.md
-        │       └── submitted version/
-        ├── 202501 MISQ/
-        ├── 202506 ISR/
-        ├── 202601 AMJ/
-        └── dashboard/
+├── projects/
+│   ├── AGENTS.md
+│   ├── CLAUDE.md
+│   ├── documents/
+│   └── project_template_IT_investment/
+└── scripts/
 ```
 
-## 使用方式
-1. 先把 legacy materials、旧 scripts、旧 outputs 放进 `Archive/`。
-2. inventory 哪些内容应该沉淀成 reusable pipeline logic。
-3. 在 `panel_factory/` 里重建 shared data construction。
-4. 把 regressions、tables、figures、manuscript work 留在 `Projects/`。
-5. 从 minimal runnable structure 开始,逐步扩展。
+先把 legacy sources 放进 `archive/`，inventory 其中的 data logic，在 `panel_factory/` 重建 reusable construction，并把 regressions 和 writing 留在 `projects/`。先恢复 minimal runnable workflow，再优化抽象。
 
-## 保持 fork 同步
+## Codex 与 Claude Code 指令
 
-如果你 fork 了这个 template，可以同步上游的 `CLAUDE.md` 更新，同时保留你自己的规则。
+各层都以 `AGENTS.md` 作为 tool-neutral canonical rule source：
 
-### 首次设置
+- 根目录 `AGENTS.md`：workspace architecture、边界和任务路由。
+- `archive/AGENTS.md`：legacy reconstruction。
+- `panel_factory/AGENTS.md`：shared data-pipeline contracts。
+- `projects/AGENTS.md`：下游 analysis 和 writing。
 
-```bash
-# 添加 upstream remote
-git remote add upstream https://github.com/your-username/smart_research_folder_template.git
-```
+[Codex 会分层发现 `AGENTS.md`](https://developers.openai.com/codex/guides/agents-md/)，从 project root 读取到 working directory，更局部的规则后生效。一般任务从仓库根目录启动；如果希望某个子目录规则进入初始 instruction chain，可从相应子目录启动 Codex。
 
-### 同步 CLAUDE.md 文件
+[Claude Code 读取 `CLAUDE.md` 并支持 `@path` import](https://code.claude.com/docs/en/memory)。每个 thin `CLAUDE.md` adapter 都用 `@AGENTS.md` 引用同层 canonical rules，不复制长规则。Claude Code 启动时加载适用的父目录指令，并在处理子目录内容时发现子目录指令。
 
-```bash
-# 拉取最新的 upstream 规则
-./scripts/sync-claude-md.sh
+本轮明确只支持 Codex 和 Claude Code。
 
-# 检查变更
-git diff
+## 受保护的定制边界
 
-# 如果满意就提交
-git add .
-git commit -m "Sync CLAUDE.md from upstream"
-```
-
-### 工作原理
-
-每个 `CLAUDE.md` 分为两部分：
-- `## User-Specific Rules` **之前**：upstream 规则（会被更新）
-- `## User-Specific Rules` **之后**：你的自定义规则（会被保留）
-
-在 marker 下方添加你的项目特定规则：
+每个允许定制的 instruction file 都必须且只能包含一个 marker：
 
 ```markdown
 ## User-Specific Rules
-
-- 用 `polars` 而不是 `pandas`
-- 所有回归用 `fixest` 包
-- 图表输出到 `output/figures/`
 ```
 
-详见 [`scripts/README.md`](scripts/README.md)。
+- marker 之前：upstream-managed public rules。
+- marker 本身及其后每一个 byte：user-specific content。
 
-## 简短 prompt use case
-当你希望 Claude 把一个 legacy research workflow 重构成当前这个 Smart Research Folder 结构时，可以直接用下面这个模板。
+共享、tool-neutral 的自定义规则应写在 `AGENTS.md` marker 下方；`CLAUDE.md` marker 只放 Claude Code-specific additions。updater 会验证 marker 精确出现一次，并逐字节保留整个 user-specific section；marker 缺失或重复会立即停止更新。
 
-模板：
+## 安全的手动更新
+
+updater 只同步 [`scripts/template_manifest.json`](scripts/template_manifest.json) 明确列出的路径。未列出的文件、实际研究数据、`panel_factory/data/` 中明确列出的 `.gitkeep` 之外的内容、用户创建的 project content，以及 instruction files 之外的 archive materials 都不在 managed scope 内；updater 不会通过递归扫描扩大范围。
+
+如果这是一个 fork，请先确认公开仓库 URL，再自行添加 `upstream` remote：
+
+```bash
+git remote add upstream CONFIRMED_PUBLIC_REPOSITORY_URL
+```
+
+`CONFIRMED_PUBLIC_REPOSITORY_URL` 是需要替换的标签，不是本 template 提供的真实 URL。
+
+先预览三方比较，不修改 working-tree files：
+
+```bash
+python3 scripts/update_template.py check
+```
+
+确认后应用无冲突更新，并检查 diff：
+
+```bash
+python3 scripts/update_template.py apply
+git diff
+```
+
+`check` 和 `apply` 都会 fetch `upstream/main`。报告区分 `unchanged`、`safe update`、`add`、`conflict`、`protected` 和 `manual review`。只要任一 managed file 冲突，`apply` 就零写入。upstream 删除或重命名只提示人工复核，不自动删除、移动或重命名。成功的 apply 会原子替换安全文件、更新 `.agentic-sandbox-state.json`，但不会 commit。
+
+三方判断与测试命令详见 [`scripts/README.md`](scripts/README.md)。
+
+## 自动生成的 pipeline dependency map
+
+每个 `panel_factory/src/**/build_*.py` 都通过 structured header 声明 artifact type、grain、merge keys、inputs、output、columns 和 core logic。dependency generator 会验证这些 contracts，并在 [`panel_factory/documents/pipeline_dependency_table.md`](panel_factory/documents/pipeline_dependency_table.md) 中生成 Mermaid DAG、artifact table 和逐项 reference。
+
+```bash
+python3 scripts/update_dependency_docs.py check
+python3 scripts/update_dependency_docs.py write
+```
+
+`check` 只检查、不改文档；它会报告 header 缺失或格式错误、命名违规、重复 artifact/output、无法解析的 generated input、dependency cycle 和过期的 map。`write` 会先执行同样的完整验证，再原子刷新 map。这样人和 agent 都能先读 dependency map 理解 pipeline，不必每次从全部 implementation files 重新推断依赖。
+
+## Tool-neutral 启动 prompt
 
 ```text
-请先阅读这些文件：
-- `CLAUDE.md`：workspace-level 的任务路由和边界
-- `Archive/CLAUDE.md`：数字化转型 / reconstruction workflow
-- `panel_factory/CLAUDE.md`：shared pipeline 规则
-- `panel_factory/documents/naming_conventions.md`：builders、artifacts、variables 的命名规则
-- `Projects/CLAUDE.md`：downstream project 规则
-
-最后，帮我进行数字化转型，转型成符合当前这个 Smart Research Folder 的运作模式。
+请先读取当前目录适用的 repository instructions，并在操作前检查相关的 archive、panel_factory 或 projects 材料。保留 raw data 和既有 artifact contracts，只进行本次请求范围内的修改，并在确认验证结果后再报告完成。
 ```
 
-这些文件分别是什么：
+## 自带 placeholders
 
-- `CLAUDE.md`：告诉 Claude 整个 workspace 里 `Archive/`、`panel_factory/`、`Projects/` 分别负责什么
-- `Archive/CLAUDE.md`：告诉 Claude 遇到数字化转型、reconstruction、legacy workflow 拆解时该怎么做
-- `panel_factory/CLAUDE.md`：告诉 Claude 怎样重建 reusable `intermediate`、`feature`、`panel`
-- `panel_factory/documents/naming_conventions.md`：承接已经沉淀到 `documents/` 里的命名规则
-- `Projects/CLAUDE.md`：告诉 Claude downstream analysis 和 writeup 应该如何与 shared pipeline 分离
-
-## 当前自带的 placeholder
-这个 template 目前带了几类最小占位文件：
-
-- `panel_factory/src/panels/build_example_intermediate.py`
-- `panel_factory/src/features/build_example_feature.py`
-- `panel_factory/src/panels/build_example_panel.py`
-- `panel_factory/src/utils/paths.py`
-- `Projects/project_template_IT_investment/dashboard/todo.md`
-- `Projects/project_template_IT_investment/dashboard/decisions.md`
-
-这些文件故意保持极简。它们的作用是给真实研究项目提供一个可改造的起点。
-
-## 设计原则
-- 不要直接覆盖 legacy files。
-- 先尊重已有 artifact names、merge keys、output boundaries。
-- reusable logic 尽量上移到 `panel_factory/`。
-- project-specific analysis 留在 `Projects/`。
-- 先恢复 minimal runnable workflow，再做抽象和优化。
-
-## 适合谁用
-如果你符合下面的场景，这个 template 会比较合适：
-
-- 接手了很难复用的旧 empirical workflow
-- 想把 shared data construction 和 project analysis 分开
-- 需要一个 AI-friendly folder structure 来做 iterative reconstruction
-- 想从一个紧凑的 starting point 开始，而不是上来就用很重的 framework
+仓库包含 `panel_factory/` 下的最小 example builders、paths 和 data-directory `.gitkeep`，以及 project dashboard notes 和各 stage 的 writeup placeholders。它们是起点，不是真实研究数据。
 
 ## License
+
 MIT

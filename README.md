@@ -1,164 +1,123 @@
-# smart_research_folder_template
+# agentic-empirical-sandbox
+
 [中文说明](README-zh.md)
 
-A lightweight research workspace template for rebuilding legacy analysis into a cleaner, reusable structure.
+A compact, agent-native workspace template for reconstructing empirical research workflows with Codex or Claude Code.
 
-## What this template is for
-This repository is a mini research workspace for projects that start from messy legacy materials such as long `.Rmd` files, old scripts, old panels, and scattered writeup files.
+## Purpose
 
-The template separates that work into three top-level areas:
+The sandbox separates legacy sources, reusable data construction, and project-specific research:
 
-- `Archive/`: legacy materials and old artifacts kept as reconstruction source
-- `panel_factory/`: shared data pipeline for rebuilding reusable data artifacts
-- `Projects/`: downstream research spaces for project-specific analysis and writeup
+- `archive/`: legacy scripts, panels, outputs, and writeups used as reconstruction sources.
+- `panel_factory/`: shared data construction built around `intermediate + features -> panel`.
+- `projects/`: downstream analysis, figures, tables, and writing.
 
-## Core idea
-The template is built around one structural rule:
-
-- treat a panel as `intermediate + features -> panel`
-
-Instead of repeatedly mutating one large table, the workflow keeps three layers separate:
-
-- `intermediate`: reusable base tables
-- `features`: compact keyed feature tables
-- `panel`: final assembled panel created by late merges
-
-This makes it easier to:
-
-- reuse the same intermediate across multiple features
-- reuse feature tables across multiple panels or projects
-- keep project-specific logic out of the shared pipeline
-- migrate legacy workflows incrementally instead of rewriting everything at once
+Instead of repeatedly mutating one large table, the workflow keeps reusable base intermediates, compact keyed features, and final late-merged panels separate. This makes legacy reconstruction incremental and keeps project-specific logic out of the shared pipeline.
 
 ## Repository structure
+
 ```text
-smart_research_folder_template/
-├── Archive/
+agentic-empirical-sandbox/
+├── AGENTS.md
+├── CLAUDE.md
+├── archive/
+│   ├── AGENTS.md
+│   └── CLAUDE.md
 ├── panel_factory/
+│   ├── AGENTS.md
+│   ├── CLAUDE.md
 │   ├── data/
 │   ├── documents/
 │   ├── notebooks/
 │   └── src/
-│       ├── features/
-│       ├── panels/
-│       └── utils/
-└── Projects/
-    └── project_template_IT_investment/
-        ├── 202405 ICIS/
-        │   ├── analysis/
-        │   │   ├── R/
-        │   │   ├── Stata/
-        │   │   ├── finalize/
-        │   │   └── outputs/
-        │   └── writeup/
-        │       ├── IT Investment - 202405 ICIS - WriteUp.md
-        │       └── submitted version/
-        ├── 202501 MISQ/
-        ├── 202506 ISR/
-        ├── 202601 AMJ/
-        └── dashboard/
+├── projects/
+│   ├── AGENTS.md
+│   ├── CLAUDE.md
+│   ├── documents/
+│   └── project_template_IT_investment/
+└── scripts/
 ```
 
-## How to use
-1. Put legacy materials, old scripts, and old outputs into `Archive/`.
-2. Inventory what should become reusable pipeline logic.
-3. Rebuild shared data construction inside `panel_factory/`.
-4. Keep regressions, tables, figures, and manuscript work inside `Projects/`.
-5. Expand gradually from a minimal runnable structure.
+Start by placing legacy sources in `archive/`, inventorying their data logic, rebuilding reusable construction in `panel_factory/`, and keeping regressions and writing in `projects/`. Recover a minimal runnable workflow before optimizing abstractions.
 
-## Keeping your fork up to date
+## Codex and Claude Code instructions
 
-If you fork this template, you can sync upstream `CLAUDE.md` updates while preserving your custom rules.
+`AGENTS.md` is the tool-neutral canonical rule source at every level:
 
-### First-time setup
+- Root `AGENTS.md` defines the workspace architecture, boundaries, and task routing.
+- `archive/AGENTS.md` defines legacy reconstruction.
+- `panel_factory/AGENTS.md` defines shared data-pipeline contracts.
+- `projects/AGENTS.md` defines downstream analysis and writing.
 
-```bash
-# Add upstream remote
-git remote add upstream https://github.com/your-username/smart_research_folder_template.git
-```
+[Codex discovers layered `AGENTS.md` files](https://developers.openai.com/codex/guides/agents-md/) from the project root toward the working directory, with more local instructions applied later. Start Codex from the repository root for general work or from a relevant subdirectory when that directory's rules should be in the initial instruction chain.
 
-### Sync CLAUDE.md files
+[Claude Code reads `CLAUDE.md` files and supports `@path` imports](https://code.claude.com/docs/en/memory). Each thin `CLAUDE.md` adapter imports its same-directory `AGENTS.md` with `@AGENTS.md`; shared rules are not duplicated. Claude Code loads applicable parent instructions at launch and discovers child-directory instructions when it works in those directories.
 
-```bash
-# Pull latest upstream rules
-./scripts/sync-claude-md.sh
+This release intentionally supports only Codex and Claude Code.
 
-# Review changes
-git diff
+## Protected customization boundary
 
-# Commit if satisfied
-git add .
-git commit -m "Sync CLAUDE.md from upstream"
-```
-
-### How it works
-
-Each `CLAUDE.md` has two sections:
-- **Before** `## User-Specific Rules`: upstream rules (will be updated)
-- **After** `## User-Specific Rules`: your custom rules (preserved)
-
-Add your project-specific rules below the marker:
+Every customizable instruction file contains exactly one marker:
 
 ```markdown
 ## User-Specific Rules
-
-- Use `polars` instead of `pandas`
-- All regressions use `fixest` package
-- Output figures to `output/figures/`
 ```
 
-See [`scripts/README.md`](scripts/README.md) for details.
+- Before the marker: upstream-managed public rules.
+- The marker and every byte after it: user-specific content.
 
-## Short prompt use case
-Use this template when you want Claude to reconstruct a legacy research workflow into the Smart Research Folder structure.
+Add shared, tool-neutral rules below the marker in `AGENTS.md`; reserve the `CLAUDE.md` marker for Claude Code-only additions. The updater validates that the marker exists exactly once and preserves the entire user-specific section byte-for-byte. A missing or repeated marker stops the update.
 
-Template:
+## Safe manual updates
+
+The updater synchronizes only paths explicitly listed in [`scripts/template_manifest.json`](scripts/template_manifest.json). Unlisted files, actual research data, `panel_factory/data/` except its named `.gitkeep` placeholders, user-created project content, and archive materials other than instruction files are outside its managed scope. The updater never recursively expands that scope.
+
+If this is a fork, first confirm the public repository URL and add it yourself as the `upstream` remote:
+
+```bash
+git remote add upstream CONFIRMED_PUBLIC_REPOSITORY_URL
+```
+
+`CONFIRMED_PUBLIC_REPOSITORY_URL` is a label to replace, not a repository URL supplied by this template.
+
+Preview the three-way comparison without changing working-tree files:
+
+```bash
+python3 scripts/update_template.py check
+```
+
+Apply only conflict-free updates, then review them:
+
+```bash
+python3 scripts/update_template.py apply
+git diff
+```
+
+`check` and `apply` fetch `upstream/main`. Reports distinguish `unchanged`, `safe update`, `add`, `conflict`, `protected`, and `manual review`. If any managed file conflicts, `apply` writes nothing. Upstream deletions or renames are reported for manual review and are never applied automatically. Successful apply operations atomically replace safe files, update `.agentic-sandbox-state.json`, and never commit.
+
+See [`scripts/README.md`](scripts/README.md) for the merge rules and test command.
+
+## Generated pipeline dependency map
+
+Every `panel_factory/src/**/build_*.py` file declares a structured header with its artifact type, grain, merge keys, inputs, output, columns, and core logic. The dependency generator validates those contracts and produces a Mermaid DAG, artifact table, and per-artifact reference in [`panel_factory/documents/pipeline_dependency_table.md`](panel_factory/documents/pipeline_dependency_table.md).
+
+```bash
+python3 scripts/update_dependency_docs.py check
+python3 scripts/update_dependency_docs.py write
+```
+
+`check` reports missing or malformed headers, naming violations, duplicate artifacts or outputs, unresolved generated inputs, dependency cycles, and a stale map without changing the document. `write` performs the same validation before atomically refreshing the map. This lets people and agents inspect the pipeline without repeatedly reconstructing dependencies from every implementation file.
+
+## Tool-neutral starter prompt
 
 ```text
-Please read these files first:
-- `CLAUDE.md`: workspace-level routing and boundaries
-- `Archive/CLAUDE.md`: digital transformation / reconstruction workflow for legacy materials
-- `panel_factory/CLAUDE.md`: shared pipeline rules
-- `panel_factory/documents/naming_conventions.md`: naming rules for builders, artifacts, and variables
-- `Projects/CLAUDE.md`: downstream project rules
-
-Then help me with digital transformation and convert this project into the current Smart Research Folder operating model.
+Read the repository instructions that apply to the current directory. Inspect the relevant archive, panel_factory, or projects materials before acting. Preserve raw data and existing artifact contracts, make only the requested changes, and validate the result before reporting completion.
 ```
 
-What each file does:
-
-- `CLAUDE.md`: tells Claude how to route work across `Archive/`, `panel_factory/`, and `Projects/`
-- `Archive/CLAUDE.md`: tells Claude how to handle digital transformation, reconstruction, and legacy workflow decomposition
-- `panel_factory/CLAUDE.md`: tells Claude how to rebuild reusable intermediates, features, and panels
-- `panel_factory/documents/naming_conventions.md`: gives stable naming rules already moved into `documents/`
-- `Projects/CLAUDE.md`: tells Claude how downstream analysis and writeup work should stay separated from the shared pipeline
-
 ## Included placeholders
-This template includes lightweight placeholders for:
 
-- `panel_factory/src/panels/build_example_intermediate.py`
-- `panel_factory/src/features/build_example_feature.py`
-- `panel_factory/src/panels/build_example_panel.py`
-- `panel_factory/src/utils/paths.py`
-- `Projects/project_template_IT_investment/dashboard/todo.md`
-- `Projects/project_template_IT_investment/dashboard/decisions.md`
-
-These files are intentionally minimal. They are starting points for adapting the structure to a real research project.
-
-## Design principles
-- Do not overwrite legacy files directly.
-- Respect existing artifact names, merge keys, and output boundaries first.
-- Move reusable logic upward into `panel_factory/`.
-- Keep project-specific analysis inside `Projects/`.
-- Recover a minimal runnable workflow before optimizing abstractions.
-
-## Who this is for
-This template is useful if you:
-
-- inherit old empirical workflows that are hard to reuse
-- want a clearer separation between shared data construction and project analysis
-- need an AI-friendly folder structure for iterative reconstruction
-- want a compact starting point rather than a large framework
+The repository includes minimal example builders and paths under `panel_factory/`, data-directory `.gitkeep` files, project dashboard notes, and stage writeup placeholders. They are starting points, not real research data.
 
 ## License
+
 MIT
