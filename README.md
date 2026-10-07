@@ -119,14 +119,14 @@ See [`scripts/README.md`](scripts/README.md) for the merge rules and test comman
 
 ## Generated pipeline dependency map
 
-Every `panel_factory/src/**/build_*.py` file declares a structured header with its artifact type, grain, merge keys, inputs, output, columns, and core logic. The dependency generator validates those contracts and produces a Mermaid DAG, artifact table, and per-artifact reference in [`panel_factory/documents/pipeline_dependency_table.md`](panel_factory/documents/pipeline_dependency_table.md).
+Every `panel_factory/src/**/build_*.py` file keeps its top bullet comments and declares a top-level `PIPELINE_SPEC` with the builder, stage, grain, canonical artifact keys, merge keys, and direct upstream builders. The AST-based generator validates those contracts and produces a compact Builder Matrix plus Builder Cards in [`panel_factory/documents/pipeline_dependency_table.md`](panel_factory/documents/pipeline_dependency_table.md).
 
 ```bash
 python3 scripts/update_dependency_docs.py check
 python3 scripts/update_dependency_docs.py write
 ```
 
-`check` reports missing or malformed headers, naming violations, duplicate artifacts or outputs, unresolved generated inputs, dependency cycles, and a stale map without changing the document. `write` performs the same validation before atomically refreshing the map. This lets people and agents inspect the pipeline without repeatedly reconstructing dependencies from every implementation file.
+`check` reports metadata warnings and a stale table without changing the document. `write` performs the same validation before atomically refreshing the table. Builder metadata is read with `ast` so documentation generation does not import or execute pipeline code.
 
 ## Tool-neutral starter prompt
 

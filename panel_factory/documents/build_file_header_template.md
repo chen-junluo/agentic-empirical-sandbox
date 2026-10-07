@@ -1,58 +1,47 @@
 ---
-## 标准 Header Template
+## Builder metadata template
 
-- 所有 `src/features/build_*.py` 和 `src/panels/build_*.py` 必须使用此模板
-- 放在文件最顶部，作为 structured comment header
-- 严格遵守格式，确保可自动化解析
-- 所有示例字段都是 required；`none` 表示该类 output columns 为空
+- 所有 `src/features/build_*.py` 和 `src/panels/build_*.py` 必须在顶部 bullet 注释后紧跟顶层 `PIPELINE_SPEC`
+- `PIPELINE_SPEC` 必须是普通 Python literal dict，方便 generator 用 `ast` 提取
+- 输入输出使用 `src/utils/paths.py` 中的 canonical artifact key，不直接写 CSV 文件名
 
 ---
 ## 模板格式
 
 ```python
-# Artifact:    feature/question_example_feature
-# Grain:       question
-# Merge Keys:  question_id
-#
-# Inputs:
-#   - question_intermediate  # data/features/question_intermediate.csv
-#
-# Output:      data/features/question_example_feature.csv
-#   - Index: question_id
-#   - Core: none
-#   - Derived: example_feature
-#
-# Logic:
-#   - Read the reusable question-level intermediate.
-#   - Build one compact feature without mutating the intermediate.
+# - Builds one compact question-level feature.
+#   - Reads the reusable intermediate and preserves question_id as the key.
+#   - Writes a late-merge feature table.
+
+PIPELINE_SPEC = {
+    "builder_name": "build_example_feature",
+    "stage": "feature",
+    "grain": "question",
+    "summary": "Build one compact question-level feature from the reusable intermediate.",
+    "reads_raw": [],
+    "reads_features": ["question_intermediate"],
+    "reads_panels": [],
+    "writes_features": ["question_example_feature"],
+    "writes_panels": [],
+    "merge_keys": ["question_id"],
+    "depends_on_builders": ["build_example_intermediate"],
+    "notes": ["compact feature table"],
+    "contracts": ["one row per question_id"],
+    "downstream_consumers": ["build_example_panel"],
+}
 ```
 
 ---
-## 字段说明
+## 字段职责
 
-- **Artifact**: `{intermediate|feature|panel}/{artifact_key}` 格式；`artifact_key` 必须与 output filename stem 相同
-- **Grain**: 默认使用 `question`、`human_answer`、`full_answer`、`user_activity` 四个 core grains
-- **Merge Keys**: 该 artifact 的 index columns，用于 merge 操作
-- **Inputs**: 每行第一个 token 写 upstream `artifact_key` 或 external source path；可在后面的 `#` comment 中补充 path 或说明
-- **Output**: 输出文件路径，紧接着列出输出列结构
-  - **Index**: index columns
-  - **Core**: 核心业务字段
-  - **Derived**: 派生计算字段
-- **Logic**: 关键处理逻辑，用 bullet points 简要描述
+- 顶部注释负责变量定义、构造步骤和操作性定义
+- `PIPELINE_SPEC` 负责机器可读的 stage、grain、canonical inputs/outputs、keys 和直接上游
+- `stage` 只能是 `feature`、`intermediate`、`panel`
+- `summary` 保持一句话；`merge_keys` 写代码真实使用的主要 join keys
 
 ---
-## 格式规则
+## 自动生成 dependency table
 
-- 使用纯 `#` 注释，不使用装饰性字符（`═`、`─`、`║` 等）
-- 用缩进表达层级关系（2 空格）
-- section 之间用一个空 `#` 行分隔
-- `feature` output 必须命名为 `{grain}_{feature_name}.csv`
-- `intermediate` output 必须命名为 `{grain}_intermediate.csv`
-- `panel` output 必须以 `{grain}_` 开头并使用 `.csv`
-
----
-## 自动生成 dependency map
-
-- 验证 headers 并检查 map 是否为最新：`python3 scripts/update_dependency_docs.py check`
-- 验证 headers 并刷新 map：`python3 scripts/update_dependency_docs.py write`
-- 任一 header 缺字段、artifact/output 重复、命名不合规或依赖成环时，generator 会停止且不覆盖现有 map
+- 验证 metadata 并检查 table 是否为最新：`python3 scripts/update_dependency_docs.py check`
+- 验证 metadata 并刷新 table：`python3 scripts/update_dependency_docs.py write`
+- 不要手工编辑 `documents/pipeline_dependency_table.md`

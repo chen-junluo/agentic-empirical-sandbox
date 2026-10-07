@@ -66,7 +66,7 @@ The integration suite creates isolated temporary Git repositories. It covers no-
 
 ## Pipeline dependency map
 
-The dependency-map generator reads structured headers from every `panel_factory/src/**/build_*.py` file. It validates artifact contracts and generates the Mermaid graph, artifact table, and detailed contracts in `panel_factory/documents/pipeline_dependency_table.md`.
+The dependency-map generator reads top-level `PIPELINE_SPEC` dictionaries from every `panel_factory/src/**/build_*.py` file with `ast`. It validates canonical registry keys and generates the Builder Matrix and Builder Cards in `panel_factory/documents/pipeline_dependency_table.md`.
 
 ```bash
 python3 scripts/update_dependency_docs.py check
@@ -74,4 +74,4 @@ python3 scripts/update_dependency_docs.py write
 python3 scripts/test_update_dependency_docs.py
 ```
 
-`check` is read-only and exits nonzero when a header is invalid or the generated map is stale. `write` validates the complete graph before atomically replacing the map. Treat builder headers as the canonical dependency metadata and do not hand-edit the generated map.
+`check` is read-only and exits nonzero when metadata warnings exist or the generated table is stale. `write` validates the complete graph before atomically replacing the table. Treat `PIPELINE_SPEC` as the canonical dependency metadata and do not hand-edit the generated table.

@@ -74,19 +74,19 @@
 - 对于非 feature generation 的简单查询检索任务，直接后台分析并告诉用户结果。**如无要求，不要在本地写入 `.py` file 和 report。**
 
 ---
-## 4. `build_*.py` structured header 与 pipeline consistency
+## 4. `build_*.py` metadata 与 pipeline consistency
 
 - 当新建或修改任何 `build_*.py` 时，至少必须同步完成两步：
-  1. 修改 `build_*.py` 的 structured header，确保与 actual code logic 一致
-  2. 运行 `python3 scripts/update_dependency_docs.py write`，由 header 重新生成 `documents/pipeline_dependency_table.md`
-- 不要手工维护 generated dependency map；使用 `python3 scripts/update_dependency_docs.py check` 检查 header 是否完整、map 是否过期
+  1. 保留顶部 bullet 注释，并修改紧随其后的 `PIPELINE_SPEC`，确保与 actual code logic 一致
+  2. 运行 `python3 scripts/update_dependency_docs.py write`，由 metadata 重新生成 `documents/pipeline_dependency_table.md`
+- 不要手工维护 generated dependency table；使用 `python3 scripts/update_dependency_docs.py check` 检查 metadata warning 和 table 是否过期
 - 如果改动改变某个 `feature` contract，例如 `grain`、`merge_keys`、`output_path` 或 reusable meaning：
   - 还应同步更新 `documents/features_registry.md`
-- Structured Header 强制要求：
-  - 所有 `build_*.py` 必须包含 structured header
-  - Header format 必须严格遵守 `documents/build_file_header_template.md`
-  - 修改 code logic 时，必须同步更新 header
-  - Header information 必须与 actual logic 一致
+- `PIPELINE_SPEC` 强制要求：
+  - 所有 `build_*.py` 必须包含顶部的普通 Python dict
+  - 必填字段和 canonical artifact keys 必须严格遵守 `documents/build_file_header_template.md` 与 `src/AGENTS.md`
+  - `stage` 必须和 builder 目录及输出 registry 一致
+  - `merge_keys` 必须反映代码真实使用的主要 join keys，`depends_on_builders` 只写直接上游
 
 ---
 ## 5. 每次生成新 feature 后的默认反馈

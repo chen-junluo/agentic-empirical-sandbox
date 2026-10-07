@@ -12,6 +12,7 @@
     {"path": "archive/CLAUDE.md", "type": "instruction"},
     {"path": "panel_factory/AGENTS.md", "type": "instruction"},
     {"path": "panel_factory/CLAUDE.md", "type": "instruction"},
+    {"path": "panel_factory/src/AGENTS.md", "type": "instruction"},
     {"path": "projects/AGENTS.md", "type": "instruction"},
     {"path": "projects/CLAUDE.md", "type": "instruction"},
     {"path": "scripts/README.md", "type": "file"},

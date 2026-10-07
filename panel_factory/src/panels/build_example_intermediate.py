@@ -1,25 +1,20 @@
-# Artifact:    intermediate/question_intermediate
-# Grain:       question
-# Merge Keys:  question_id
-#
-# Inputs:
-#   - data/raw/questions.csv  # example raw question source
-#
-# Output:      data/features/question_intermediate.csv
-#   - Index: question_id
-#   - Core: source_value
-#   - Derived: none
-#
-# Logic:
-#   - Read the raw question source without modifying it.
-#   - Produce a minimal reusable question-level base table.
+# - Builds the reusable question-level intermediate.
+#   - Reads the example raw question source without modifying it.
+#   - Produces a minimal reusable base table keyed by question_id.
 
 PIPELINE_SPEC = {
-    "artifact": "intermediate/question_intermediate",
-    "kind": "intermediate",
+    "builder_name": "build_example_intermediate",
+    "stage": "intermediate",
     "grain": "question",
+    "summary": "Build the reusable question-level intermediate from the raw question source.",
+    "reads_raw": ["questions"],
+    "reads_features": [],
+    "reads_panels": [],
+    "writes_features": ["question_intermediate"],
+    "writes_panels": [],
     "merge_keys": ["question_id"],
-    "inputs": ["data/raw/questions.csv"],
-    "output": "data/features/question_intermediate.csv",
-    "notes": "Replace the placeholder logic while preserving this artifact contract.",
+    "depends_on_builders": [],
+    "notes": ["Replace the placeholder logic while preserving this artifact contract."],
+    "contracts": ["one row per question_id", "raw source is read-only"],
+    "downstream_consumers": ["build_example_feature", "build_example_panel"],
 }

@@ -1,26 +1,19 @@
-# Artifact:    panel/question_example_panel
-# Grain:       question
-# Merge Keys:  question_id
-#
-# Inputs:
-#   - question_intermediate  # data/features/question_intermediate.csv
-#   - question_example_feature  # data/features/question_example_feature.csv
-#
-# Output:      data/panels/question_example_panel.csv
-#   - Index: question_id
-#   - Core: source_value
-#   - Derived: example_feature
-#
-# Logic:
-#   - Read the reusable question-level intermediate and compact feature.
-#   - Late merge on question_id without rebuilding either upstream artifact.
+# - Assembles the final question-level panel.
+#   - Reads the reusable intermediate and compact feature.
+#   - Late-merges them on question_id without rebuilding upstream artifacts.
 
 PIPELINE_SPEC = {
-    "artifact": "panel/question_example_panel",
-    "kind": "panel",
+    "builder_name": "build_example_panel",
+    "stage": "panel",
     "grain": "question",
+    "summary": "Assemble the final question-level panel by late-merging the intermediate and feature.",
+    "reads_raw": [],
+    "reads_features": ["question_intermediate", "question_example_feature"],
+    "reads_panels": [],
+    "writes_features": [],
+    "writes_panels": ["question_example_panel"],
     "merge_keys": ["question_id"],
-    "inputs": ["question_intermediate", "question_example_feature"],
-    "output": "data/panels/question_example_panel.csv",
-    "notes": "Replace the placeholder logic while preserving this artifact contract.",
+    "depends_on_builders": ["build_example_intermediate", "build_example_feature"],
+    "notes": ["Replace the placeholder logic while preserving this artifact contract."],
+    "contracts": ["late merge on question_id", "does not rebuild upstream artifacts"],
 }

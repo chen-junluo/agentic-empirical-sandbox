@@ -1,25 +1,21 @@
-# Artifact:    feature/question_example_feature
-# Grain:       question
-# Merge Keys:  question_id
-#
-# Inputs:
-#   - question_intermediate  # data/features/question_intermediate.csv
-#
-# Output:      data/features/question_example_feature.csv
-#   - Index: question_id
-#   - Core: none
-#   - Derived: example_feature
-#
-# Logic:
-#   - Read the reusable question-level intermediate.
-#   - Build one example question-level feature without mutating the intermediate.
+# - Builds one compact question-level feature.
+#   - Reads the reusable question-level intermediate.
+#   - Builds one example feature without mutating the intermediate.
+#   - Writes a feature table keyed by question_id for late merge.
 
 PIPELINE_SPEC = {
-    "artifact": "feature/question_example_feature",
-    "kind": "feature",
+    "builder_name": "build_example_feature",
+    "stage": "feature",
     "grain": "question",
+    "summary": "Build one compact question-level feature from the reusable intermediate.",
+    "reads_raw": [],
+    "reads_features": ["question_intermediate"],
+    "reads_panels": [],
+    "writes_features": ["question_example_feature"],
+    "writes_panels": [],
     "merge_keys": ["question_id"],
-    "inputs": ["question_intermediate"],
-    "output": "data/features/question_example_feature.csv",
-    "notes": "Replace the placeholder logic while preserving this artifact contract.",
+    "depends_on_builders": ["build_example_intermediate"],
+    "notes": ["Replace the placeholder logic while preserving this artifact contract."],
+    "contracts": ["one row per question_id"],
+    "downstream_consumers": ["build_example_panel"],
 }

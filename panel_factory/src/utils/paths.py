@@ -1,36 +1,52 @@
-"""Canonical artifact path registry placeholder.
+"""Canonical artifact-key registries used by pipeline metadata.
 
-Use this file to register stable artifact contracts for `intermediate`,
-`feature`, and `panel` outputs. Keep it lightweight but explicit so later
-pipeline scripts and AI collaborators can reuse the same names and paths.
+Builder metadata refers to these keys rather than repeating CSV filenames.
+Keep the values literal and import-free so the dependency generator can inspect
+this module with ``ast``.
 """
 
+RAW_FILES = {
+    "questions": {
+        "path": "data/raw/questions.csv",
+        "notes": "Example raw question source; raw data remains read-only.",
+    },
+}
+
+FEATURE_OUTPUTS = {
+    "question_intermediate": {
+        "path": "data/features/question_intermediate.csv",
+        "grain": "question",
+        "keys": ["question_id"],
+        "built_by": "build_example_intermediate",
+        "kind": "intermediate",
+    },
+    "question_example_feature": {
+        "path": "data/features/question_example_feature.csv",
+        "grain": "question",
+        "keys": ["question_id"],
+        "built_by": "build_example_feature",
+        "kind": "feature",
+    },
+}
+
+PANEL_OUTPUTS = {
+    "question_example_panel": {
+        "path": "data/panels/question_example_panel.csv",
+        "grain": "question",
+        "keys": ["question_id"],
+        "built_by": "build_example_panel",
+        "kind": "panel",
+    },
+}
+
+# Backward-compatible grouped view for callers that used the original registry.
 ARTIFACT_PATHS = {
+    "raw": RAW_FILES,
     "intermediate": {
-        "question_intermediate": {
-            "path": "data/features/question_intermediate.csv",
-            "grain": "question",
-            "keys": ["question_id"],
-            "built_by": "src/panels/build_example_intermediate.py",
-            "notes": "Replace with actual intermediate artifact contract.",
-        },
+        "question_intermediate": FEATURE_OUTPUTS["question_intermediate"],
     },
     "features": {
-        "question_example_feature": {
-            "path": "data/features/question_example_feature.csv",
-            "grain": "question",
-            "keys": ["question_id"],
-            "built_by": "src/features/build_example_feature.py",
-            "notes": "Replace with actual feature artifact contract.",
-        },
+        "question_example_feature": FEATURE_OUTPUTS["question_example_feature"],
     },
-    "panels": {
-        "question_example_panel": {
-            "path": "data/panels/question_example_panel.csv",
-            "grain": "question",
-            "keys": ["question_id"],
-            "built_by": "src/panels/build_example_panel.py",
-            "notes": "Replace with actual panel artifact contract.",
-        },
-    },
+    "panels": PANEL_OUTPUTS,
 }

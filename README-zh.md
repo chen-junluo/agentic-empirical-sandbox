@@ -118,14 +118,14 @@ git diff
 
 ## 自动生成的 pipeline dependency map
 
-每个 `panel_factory/src/**/build_*.py` 都通过 structured header 声明 artifact type、grain、merge keys、inputs、output、columns 和 core logic。dependency generator 会验证这些 contracts，并在 [`panel_factory/documents/pipeline_dependency_table.md`](panel_factory/documents/pipeline_dependency_table.md) 中生成 Mermaid DAG、artifact table 和逐项 reference。
+每个 `panel_factory/src/**/build_*.py` 都保留顶部 bullet 注释，并通过顶层 `PIPELINE_SPEC` 声明 builder、stage、grain、canonical artifact keys、merge keys 和直接上游。基于 `ast` 的 generator 会验证这些 metadata，并在 [`panel_factory/documents/pipeline_dependency_table.md`](panel_factory/documents/pipeline_dependency_table.md) 中生成紧凑的 Builder Matrix 和 Builder Cards。
 
 ```bash
 python3 scripts/update_dependency_docs.py check
 python3 scripts/update_dependency_docs.py write
 ```
 
-`check` 只检查、不改文档；它会报告 header 缺失或格式错误、命名违规、重复 artifact/output、无法解析的 generated input、dependency cycle 和过期的 map。`write` 会先执行同样的完整验证，再原子刷新 map。这样人和 agent 都能先读 dependency map 理解 pipeline，不必每次从全部 implementation files 重新推断依赖。
+`check` 只检查、不改文档；它会报告 metadata warning 和过期的 table。`write` 会先执行同样的验证，再原子刷新 table。generator 使用 `ast` 静态读取 builder，不会 import 或执行 pipeline code。
 
 ## Tool-neutral 启动 prompt
 
