@@ -63,8 +63,9 @@
 ---
 ## 4. 局部说明与协作方式
 
-- 如果某个 subfolder 下还有自己的 `AGENTS.md`，在该目录范围内应同时遵守更局部的规则。
-- 例如在 `panel_factory/` 内工作时，应同时遵守 `panel_factory/AGENTS.md`。
+- **进入目录前必须读取局部规则**：任何任务只要需要查看、运行、创建或修改某个 subfolder 内的文件，就必须先查找并完整阅读该路径对应的 `AGENTS.md`；如果路径中有多层 `AGENTS.md`，从 workspace root 到目标路径应按层级全部阅读，并同时遵守这些规则。
+- 例如任务涉及 `panel_factory/`、需要在其中工作或修改其中的文件时，必须先阅读 `panel_factory/AGENTS.md`；任务涉及 `archive/` 或 `projects/` 时同理，分别先阅读对应的局部 `AGENTS.md`。
+- 进入更深层级的目录后，如果该目录或其上级路径还有更局部的 `AGENTS.md`，必须在继续工作前补充阅读；不能假定 Codex 会自动读取目标路径对应的局部规则。
 - 协作风格：
   - 中文简洁描述内容，technical terms 用 English
   - 当 structure 不清晰时，先列 inventory，再提 reconstruction plan
