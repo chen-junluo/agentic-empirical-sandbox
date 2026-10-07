@@ -40,6 +40,15 @@
   - results 容易回读
 
 ---
+## 4. Cairnwork role routing
+
+- project-level Cairnwork initialization → `${CAIRNWORK_ROOT}/agents/project_initializer.md`
+- Node validation, execution, rerun, result protocol and Dashboard rebuild → `${CAIRNWORK_ROOT}/agents/analysis_executor.md`
+- result interpretation, bounded follow-up and research-design decisions → `${CAIRNWORK_ROOT}/agents/research_planner.md`
+- 先读取 `${CAIRNWORK_ROOT}/agents/README.md` 和对应 role contract，再结合本地
+  `projects/` 规则执行；不要让 sandbox 维护第二份 role contract。
+
+---
 ## User-Specific Rules
 
 <!-- 在此添加 projects 层特定规则 -->

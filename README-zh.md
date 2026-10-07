@@ -20,6 +20,8 @@ workflow 不反复 mutate 一个大表，而是分离 reusable base intermediate
 agentic-empirical-sandbox/
 ├── AGENTS.md
 ├── CLAUDE.md
+├── agents/
+│   └── README.md              # 薄引用层；contracts 在 Cairnwork
 ├── archive/
 │   ├── AGENTS.md
 │   └── CLAUDE.md
@@ -39,6 +41,23 @@ agentic-empirical-sandbox/
 ```
 
 先把 legacy sources 放进 `archive/`，inventory 其中的 data logic，在 `panel_factory/` 重建 reusable construction，并把 regressions 和 writing 留在 `projects/`。先恢复 minimal runnable workflow，再优化抽象。
+
+## Cairnwork integration
+
+三个 canonical role contract 统一维护在独立的 Cairnwork repository 中。将
+`CAIRNWORK_ROOT` 指向该 checkout，然后读取
+`$CAIRNWORK_ROOT/agents/README.md` 和对应的 role contract。本仓库只提供
+workspace-specific 的边界、project context 和本地 routing。
+
+如果项目使用 Cairnwork，可以用下面的一句话初始化某个 project：
+
+```bash
+python3 <CAIRNWORK_ROOT>/scripts/init_project.py \
+  --root projects/<project-directory>
+```
+
+具体的安全检查、命令链和 handoff 以 Cairnwork 中的 role contract 为准；本仓库的
+`AGENTS.md` 只补充本地边界和 routing。
 
 ## Codex 与 Claude Code 指令
 

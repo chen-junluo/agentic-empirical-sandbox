@@ -20,6 +20,8 @@ Instead of repeatedly mutating one large table, the workflow keeps reusable base
 agentic-empirical-sandbox/
 ├── AGENTS.md
 ├── CLAUDE.md
+├── agents/
+│   └── README.md              # thin pointer; contracts live in Cairnwork
 ├── archive/
 │   ├── AGENTS.md
 │   └── CLAUDE.md
@@ -39,6 +41,24 @@ agentic-empirical-sandbox/
 ```
 
 Start by placing legacy sources in `archive/`, inventorying their data logic, rebuilding reusable construction in `panel_factory/`, and keeping regressions and writing in `projects/`. Recover a minimal runnable workflow before optimizing abstractions.
+
+## Cairnwork integration
+
+The canonical three role contracts are maintained in the separate Cairnwork
+repository. Set `CAIRNWORK_ROOT` to that checkout, then read
+`$CAIRNWORK_ROOT/agents/README.md` and the role contract that matches the task.
+This repository contributes only workspace-specific boundaries and project
+context.
+
+For a project that uses Cairnwork, the initializer command is:
+
+```bash
+python3 <CAIRNWORK_ROOT>/scripts/init_project.py \
+  --root projects/<project-directory>
+```
+
+The Cairnwork role contracts specify the safety checks and handoffs around this
+command; this repository's `AGENTS.md` files add local routing and boundaries.
 
 ## Codex and Claude Code instructions
 

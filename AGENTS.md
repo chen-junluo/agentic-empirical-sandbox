@@ -92,6 +92,17 @@
 - 未列入 manifest 的文件、实际研究数据、archive materials 和用户创建的 project content 默认受保护。
 
 ---
+## 6. Cairnwork integration
+
+- Cairnwork 的 canonical role contracts 位于独立的 Cairnwork checkout：
+  `${CAIRNWORK_ROOT}/agents/`。
+- 本仓库的 `agents/README.md` 只是引用适配层；不要在 sandbox 复制或重写
+  `project_initializer.md`、`analysis_executor.md`、`research_planner.md`。
+- 用户说“初始化项目”“运行/重跑/验证 Node”或“解释结果/规划下一步”时，先读取
+  对应的 Cairnwork role contract，再结合本仓库的 archive、`panel_factory` 和
+  `projects/` 局部规则执行。
+
+---
 ## User-Specific Rules
 
 <!-- 在此添加 tool-neutral、workspace-specific rules -->
