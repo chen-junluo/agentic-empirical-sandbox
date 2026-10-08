@@ -1,5 +1,36 @@
 # Template updater
 
+## Synchronize instruction files
+
+Run the dedicated synchronizer to replace the public-rule prefix of every
+`type: instruction` path in the local manifest with the latest version from the
+canonical GitHub repository:
+
+```bash
+python3 scripts/sync_instruction_files.py
+```
+
+The script fetches `main` directly from
+`chen-junluo/agentic-empirical-sandbox`. For each instruction file, it replaces
+all bytes before the `## User-Specific Rules` heading and preserves that heading
+and every following local byte exactly. Text inside the section, including its
+HTML comment, is intentionally not parsed and may differ across files. A missing
+or duplicate heading, symlinked managed path, or upstream-removed file aborts
+the entire sync before any working-tree file is changed. The script does not
+delete files or create a commit. Use `--check` to preview changes without
+writing:
+
+```bash
+python3 scripts/sync_instruction_files.py --check
+```
+
+The instruction-file scope comes only from the local
+[`template_manifest.json`](template_manifest.json). Unlisted `AGENTS.md` and
+`CLAUDE.md` files are not scanned or modified.
+
+The existing three-way updater remains available when you want conflict-aware
+updates for the full public template:
+
 The updater performs a manual, allowlisted three-way merge from `upstream/main` using only the Python standard library.
 
 ## Commands
@@ -60,9 +91,10 @@ Upstream deletions remain local and are reported once for manual review. Advanci
 
 ```bash
 python3 scripts/test_update_template.py
+python3 scripts/test_sync_instruction_files.py
 ```
 
-The integration suite creates isolated temporary Git repositories. It covers no-op checks, safe updates, conflicts and zero-write aborts, byte-preserved instruction suffixes, protected user content, new placeholders, upstream deletions, idempotency, invalid markers, managed-path symlink conflicts, and trust-metadata symlink rejection. It does not modify this repository.
+The integration suites create isolated temporary Git repositories and do not modify this repository. The template-updater suite covers three-way update decisions, conflicts and zero-write aborts, protected user content, placeholders, deletions, and symlink rejection. The instruction-sync suite covers forced public-prefix replacement, varied comments and line endings in local suffixes, preview-only mode, idempotency, marker validation, and manifest scope.
 
 ## Pipeline dependency map
 

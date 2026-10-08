@@ -267,7 +267,7 @@ def instruction_parts(content: bytes, path: str, version: str) -> tuple[bytes, b
     offsets: list[int] = []
     cursor = 0
     for line in lines:
-        if line.rstrip(b"\r\n") == MARKER:
+        if line.rstrip(b"\r\n").rstrip(b" \t") == MARKER:
             offsets.append(cursor)
         cursor += len(line)
     if len(offsets) != 1:

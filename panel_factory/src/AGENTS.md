@@ -15,3 +15,8 @@
 - 修改 builder 或 `PIPELINE_SPEC` 后，必须从 repository root 运行：
   - `python3 scripts/update_dependency_docs.py check`
   - 确认无 warning 后运行 `python3 scripts/update_dependency_docs.py write`
+
+---
+## User-Specific Rules
+
+<!-- 在此添加 panel_factory/src 特定规则 -->
