@@ -13,6 +13,7 @@ from pathlib import Path
 
 UPDATER = Path(__file__).with_name("update_template.py").resolve()
 MARKER = "## User-Specific Rules"
+POINTER = "若同目录存在 `AGENTS.local.md`，在执行任务前读取并遵守其中规则；冲突时以 `.local.md` 为准。"
 
 
 def run(command: list[str], cwd: Path, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -47,7 +48,7 @@ class TemporaryFork:
         self.write_upstream("README.md", "baseline readme\n")
         self.write_upstream(
             "AGENTS.md",
-            f"# Baseline rules\n\n{MARKER}\n\nupstream placeholder\n",
+            f"# Baseline rules\n\n{MARKER}\n\n{POINTER}\n",
         )
         self.write_upstream("templates/remove.txt", "keep unless reviewed\n")
         manifest = {
@@ -143,7 +144,7 @@ class UpdateTemplateTests(unittest.TestCase):
         self.fork.write_upstream("README.md", "upstream readme edit\n")
         self.fork.write_upstream(
             "AGENTS.md",
-            f"# Upstream rules v2\n\n{MARKER}\n\nupstream placeholder\n",
+            f"# Upstream rules v2\n\n{MARKER}\n\n{POINTER}\n",
         )
         self.fork.commit_upstream("two upstream changes")
 
@@ -155,21 +156,51 @@ class UpdateTemplateTests(unittest.TestCase):
         self.assertEqual(self.fork.local_bytes("AGENTS.md"), before_agents)
         self.assertFalse((self.fork.local / ".agentic-sandbox-state.json").exists())
 
-    def test_instruction_user_section_is_byte_preserved(self) -> None:
-        suffix = (f"{MARKER}\r\n\r\n- 用户规则  그대로\r\n").encode("utf-8")
-        self.fork.write_local("AGENTS.md", b"# Baseline rules\n\n" + suffix)
+    def test_instruction_file_is_replaced_and_local_md_untouched(self) -> None:
+        local_rules = "- 用户规则  그대로\r\n".encode("utf-8")
+        self.fork.write_local("AGENTS.local.md", local_rules)
         self.fork.write_upstream(
             "AGENTS.md",
-            f"# Upstream rules v2\n\n{MARKER}\n\nupstream placeholder\n",
+            f"# Upstream rules v2\n\n{MARKER}\n\n{POINTER}\n",
         )
         self.fork.commit_upstream("update public rules")
 
         result = self.fork.updater("apply")
         self.assertEqual(result.returncode, 0, self.output(result))
-        updated = self.fork.local_bytes("AGENTS.md")
-        marker_offset = updated.index(MARKER.encode("utf-8"))
-        self.assertEqual(updated[marker_offset:], suffix)
-        self.assertTrue(updated.startswith(b"# Upstream rules v2\n"))
+        self.assertEqual(
+            self.fork.local_bytes("AGENTS.md"),
+            f"# Upstream rules v2\n\n{MARKER}\n\n{POINTER}\n".encode("utf-8"),
+        )
+        self.assertEqual(self.fork.local_bytes("AGENTS.local.md"), local_rules)
+
+    def test_rules_below_marker_are_a_conflict(self) -> None:
+        self.fork.write_local(
+            "AGENTS.md",
+            f"# Baseline rules\n\n{MARKER}\n\n<!-- comment ok -->\n- legacy local rule\n",
+        )
+        self.fork.write_upstream("README.md", "otherwise safe update\n")
+        self.fork.commit_upstream("safe update beside legacy rules")
+        before_readme = self.fork.local_bytes("README.md")
+
+        result = self.fork.updater("apply")
+        self.assertEqual(result.returncode, 2, self.output(result))
+        self.assertIn("[conflict] AGENTS.md", result.stdout)
+        self.assertIn("must move to AGENTS.local.md", result.stdout)
+        self.assertEqual(self.fork.local_bytes("README.md"), before_readme)
+        self.assertFalse((self.fork.local / ".agentic-sandbox-state.json").exists())
+
+    def test_old_comment_below_marker_is_refreshed(self) -> None:
+        self.fork.write_local(
+            "AGENTS.md", f"# Baseline rules\n\n{MARKER}\n\n<!-- 旧注释 -->\n"
+        )
+
+        result = self.fork.updater("apply")
+        self.assertEqual(result.returncode, 0, self.output(result))
+        self.assertIn("[safe update] AGENTS.md", result.stdout)
+        self.assertEqual(
+            self.fork.local_bytes("AGENTS.md"),
+            f"# Baseline rules\n\n{MARKER}\n\n{POINTER}\n".encode("utf-8"),
+        )
 
     def test_unlisted_projects_data_and_archive_are_untouched(self) -> None:
         protected = {
@@ -279,7 +310,7 @@ class UpdateTemplateTests(unittest.TestCase):
         readme.symlink_to(external)
         self.fork.write_upstream(
             "AGENTS.md",
-            f"# Upstream rules v2\n\n{MARKER}\n\nupstream placeholder\n",
+            f"# Upstream rules v2\n\n{MARKER}\n\n{POINTER}\n",
         )
         self.fork.commit_upstream("update beside managed symlink")
         before_agents = self.fork.local_bytes("AGENTS.md")

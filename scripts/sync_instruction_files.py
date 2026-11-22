@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Replace managed instruction prefixes with the latest public GitHub versions."""
+"""Replace managed instruction files with the latest public GitHub versions."""
 
 from __future__ import annotations
 
@@ -20,6 +20,7 @@ from update_template import (
     instruction_parts,
     load_manifest,
     local_file,
+    user_rules_problem,
 )
 
 
@@ -78,17 +79,15 @@ def analyze(repo_root: Path, source_url: str) -> tuple[str, list[SyncPlan]]:
             continue
 
         try:
-            upstream_prefix, _ = instruction_parts(
-                upstream, managed.path, "upstream"
-            )
-            if local is None:
-                replacement = upstream
-            else:
-                _, local_suffix = instruction_parts(local, managed.path, "local")
-                replacement = upstream_prefix + local_suffix
+            instruction_parts(upstream, managed.path, "upstream")
+            problem = None if local is None else user_rules_problem(local, managed.path)
         except UpdateError as exc:
             plans.append(SyncPlan(managed, "conflict", str(exc)))
             continue
+        if problem:
+            plans.append(SyncPlan(managed, "conflict", problem))
+            continue
+        replacement = upstream
 
         if local == replacement:
             plans.append(SyncPlan(managed, "unchanged", "already matches latest rules"))
@@ -97,7 +96,7 @@ def analyze(repo_root: Path, source_url: str) -> tuple[str, list[SyncPlan]]:
                 SyncPlan(
                     managed,
                     "update",
-                    "replace public rules and preserve the local user-specific suffix",
+                    "replace with the latest public version; rules live in *.local.md",
                     replacement,
                 )
             )
@@ -160,8 +159,8 @@ def apply_plans(repo_root: Path, plans: list[SyncPlan]) -> int:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Fetch canonical GitHub instruction files, replace their public-rule "
-            "prefixes, and preserve local User-Specific Rules sections."
+            "Fetch canonical GitHub instruction files and replace them; private "
+            "rules live in gitignored same-directory *.local.md files."
         )
     )
     parser.add_argument(

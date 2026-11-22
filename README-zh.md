@@ -76,16 +76,15 @@ python3 <CAIRNWORK_ROOT>/scripts/init_project.py \
 
 ## 受保护的定制边界
 
-每个允许定制的 instruction file 都必须且只能包含一个 marker：
+每个 managed instruction file 整体由 upstream 管理，末尾必须且只能包含一个 marker：
 
 ```markdown
 ## User-Specific Rules
 ```
 
-- marker 之前：upstream-managed public rules。
-- marker 本身及其后每一个 byte：user-specific content。
+marker 下方只有一行 pointer，指示 agent 读取同目录 gitignored 的 `*.local.md`。共享、tool-neutral 的自定义规则写在 `AGENTS.local.md`，Claude Code-specific additions 写在 `CLAUDE.local.md`；与 public rules 冲突时以 `.local.md` 为准。
 
-共享、tool-neutral 的自定义规则应写在 `AGENTS.md` marker 下方；`CLAUDE.md` marker 只放 Claude Code-specific additions。updater 会验证 marker 精确出现一次，并逐字节保留整个 user-specific section；marker 缺失或重复会立即停止更新。
+updater 整体替换 instruction file，不读取也不修改 `*.local.md`，并验证 marker 精确出现一次。如果 marker 下方存在 pointer 和 HTML comment 以外的内容（例如旧版布局写下的规则），更新会以 conflict 停止；把这些内容移到对应的 `.local.md` 后重试。
 
 ## 安全的手动更新
 

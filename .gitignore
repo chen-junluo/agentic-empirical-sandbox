@@ -15,7 +15,12 @@ panel_factory/data/features/*
 !panel_factory/data/features/.gitkeep
 panel_factory/data/panels/*
 !panel_factory/data/panels/.gitkeep
+panel_factory/data/.cache/
+panel_factory/data/TEMP/
 
 # Project analysis outputs
 projects/**/analysis/outputs/*
 !projects/**/analysis/outputs/.gitkeep
+
+# Private instruction rules (read via the pointer below each marker)
+*.local.md

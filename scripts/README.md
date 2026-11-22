@@ -2,21 +2,21 @@
 
 ## Synchronize instruction files
 
-Run the dedicated synchronizer to replace the public-rule prefix of every
-`type: instruction` path in the local manifest with the latest version from the
-canonical GitHub repository:
+Run the dedicated synchronizer to replace every `type: instruction` path in the
+local manifest with the latest version from the canonical GitHub repository:
 
 ```bash
 python3 scripts/sync_instruction_files.py
 ```
 
 The script fetches `main` directly from
-`chen-junluo/agentic-empirical-sandbox`. For each instruction file, it replaces
-all bytes before the `## User-Specific Rules` heading and preserves that heading
-and every following local byte exactly. Text inside the section, including its
-HTML comment, is intentionally not parsed and may differ across files. A missing
-or duplicate heading, symlinked managed path, or upstream-removed file aborts
-the entire sync before any working-tree file is changed. The script does not
+`chen-junluo/agentic-empirical-sandbox`. Each instruction file is replaced as a
+whole. Private rules live in the gitignored same-directory `*.local.md` files,
+which the script never reads or writes. A missing or duplicate
+`## User-Specific Rules` heading, local content below that heading other than the
+`.local.md` pointer line or HTML comments, a symlinked managed path, or an
+upstream-removed file aborts the entire sync before any working-tree file is
+changed. The script does not
 delete files or create a commit. Use `--check` to preview changes without
 writing:
 
@@ -58,7 +58,7 @@ The allowlist covers public instruction files, Claude Code adapters, READMEs, up
 - actual research data and `panel_factory/data/` contents other than named `.gitkeep` placeholders;
 - user-created or populated projects beyond explicitly named template placeholders;
 - archive materials;
-- instruction content beginning with `## User-Specific Rules`.
+- `*.local.md` private rule files next to each instruction file.
 
 ## Three-way decisions
 
@@ -67,17 +67,17 @@ The baseline is the `upstream_commit` recorded in `.agentic-sandbox-state.json`.
 - `unchanged`: upstream managed content has not changed and local managed content still matches, or the local file already matches upstream.
 - `safe update`: upstream changed while local managed content still equals the baseline.
 - `add`: an allowlisted upstream path is new and absent locally.
-- `conflict`: local and upstream managed content both changed relative to the baseline, a local path is not a regular file, a managed path or one of its parent directories is a symbolic link, or an instruction marker is invalid.
+- `conflict`: local and upstream managed content both changed relative to the baseline, a local path is not a regular file, a managed path or one of its parent directories is a symbolic link, or an instruction marker is invalid, or local rules still sit below the marker instead of in `*.local.md`.
 - `protected`: a local-only change or pre-existing local path will be left untouched.
 - `manual review`: upstream removed or renamed a path; the updater will not delete, move, or rename the local file.
 
-For instruction files, only bytes before the exact marker are compared:
+Instruction files are compared as a whole, except that the three-way decision looks only at bytes before the exact marker:
 
 ```markdown
 ## User-Specific Rules
 ```
 
-The marker and every byte after it come from the local file unchanged. Local, baseline, and upstream versions must each contain exactly one marker whenever that version exists. Missing or repeated markers are conflicts.
+Below the marker, upstream ships one pointer line to the same-directory `*.local.md`. Local, baseline, and upstream versions must each contain exactly one marker whenever that version exists; missing or repeated markers are conflicts. A local file with anything other than the pointer line or HTML comments below the marker is a conflict and must be moved into `*.local.md` by hand. When public rules already match, an outdated comment or pointer below the marker is refreshed as a `safe update`.
 
 The updater does not use symlinks for synchronization and never follows them for managed local paths. If a managed path itself, or any repository-relative parent directory on that path, is a symlink, both `check` and `apply` report a conflict. Because conflicts fail the complete preflight, `apply` leaves every working-tree file and the updater state unchanged.
 
@@ -94,7 +94,7 @@ python3 scripts/test_update_template.py
 python3 scripts/test_sync_instruction_files.py
 ```
 
-The integration suites create isolated temporary Git repositories and do not modify this repository. The template-updater suite covers three-way update decisions, conflicts and zero-write aborts, protected user content, placeholders, deletions, and symlink rejection. The instruction-sync suite covers forced public-prefix replacement, varied comments and line endings in local suffixes, preview-only mode, idempotency, marker validation, and manifest scope.
+The integration suites create isolated temporary Git repositories and do not modify this repository. The template-updater suite covers three-way update decisions, conflicts and zero-write aborts, protected user content, placeholders, deletions, and symlink rejection. The instruction-sync suite covers whole-file replacement, untouched `*.local.md` files, rules left below the marker, preview-only mode, idempotency, marker validation, and manifest scope.
 
 ## Pipeline dependency map
 

@@ -19,4 +19,4 @@
 ---
 ## User-Specific Rules
 
-<!-- 在此添加 panel_factory/src 特定规则 -->
+若同目录存在 `AGENTS.local.md`，在执行任务前读取并遵守其中规则；冲突时以 `.local.md` 为准。

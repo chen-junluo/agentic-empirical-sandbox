@@ -50,7 +50,7 @@
   - `data/panels/`：final panel data
   - `src/features/`：生成 compact feature tables
   - `src/panels/`：把 features late merge 到某个 intermediate 上，生成 final panel
-  - `src/utils/`：shared utilities，例如 `paths`、registry、I/O helpers
+  - `src/utils/`：shared utilities，例如 `paths`、registry、I/O helpers；`cache_utils.py` 提供 `cache_dir()`、`cache_store_path()`、`annotation_temp_dir()`
   - `documents/`：可选 reference documents
     - 作用：减少重复阅读、节省 token、方便复查
     - 不是必须层，也不是 canonical rule source
@@ -71,6 +71,8 @@
 - 如果已有 intermediate 或 feature 已能支持当前任务，直接复用，不要重复造轮子
 - 涉及 artifact dependencies 时，优先参考 `documents/pipeline_dependency_table.md`
 - 涉及 `feature` 是否已存在、是否应复用时，优先参考 `documents/features_registry.md`
+- 写 crawler 或 cache 时，遵守 `documents/crawler_conventions.md`，路径统一用 `src/utils/cache_utils.py`
+- 写 annotation workflow（candidate table、RA sheets、`_done.csv`）时，遵守 `documents/annotation_conventions.md`
 - 对于非 feature generation 的简单查询检索任务，直接后台分析并告诉用户结果。**如无要求，不要在本地写入 `.py` file 和 report。**
 
 ---
@@ -111,4 +113,4 @@
 ---
 ## User-Specific Rules
 
-<!-- 在此添加 panel_factory 特定规则 -->
+若同目录存在 `AGENTS.local.md`，在执行任务前读取并遵守其中规则；冲突时以 `.local.md` 为准。

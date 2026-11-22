@@ -77,16 +77,15 @@ This release intentionally supports only Codex and Claude Code.
 
 ## Protected customization boundary
 
-Every customizable instruction file contains exactly one marker:
+Every managed instruction file is fully upstream-managed and ends with exactly one marker:
 
 ```markdown
 ## User-Specific Rules
 ```
 
-- Before the marker: upstream-managed public rules.
-- The marker and every byte after it: user-specific content.
+Below the marker is a single pointer line telling the agent to read the same-directory `*.local.md` file, which is gitignored and holds your private rules. Put shared, tool-neutral rules in `AGENTS.local.md` and Claude Code-only additions in `CLAUDE.local.md`; when they conflict with public rules, `.local.md` wins.
 
-Add shared, tool-neutral rules below the marker in `AGENTS.md`; reserve the `CLAUDE.md` marker for Claude Code-only additions. The updater validates that the marker exists exactly once and preserves the entire user-specific section byte-for-byte. A missing or repeated marker stops the update.
+The updater replaces the whole instruction file and never reads or writes `*.local.md`. It validates that the marker exists exactly once. If anything other than the pointer line or HTML comments sits below the marker (for example rules written under the old layout), the update stops with a conflict; move that content into the matching `.local.md` and rerun.
 
 ## Safe manual updates
 

@@ -69,17 +69,6 @@ class TemporaryRepositories:
             f"<!-- upstream comment style {index}-{version} -->\n"
         )
 
-    def local_suffix(self, index: int) -> bytes:
-        if index == 0:
-            return (
-                f"{MARKER}  \r\n\r\n"
-                "<!-- 用户注释格式可以各不相同 -->\r\n"
-                "- local rule alpha\r\n"
-            ).encode("utf-8")
-        return (
-            f"{MARKER}\n\n<!-- 自定义注释 {index} -->\n- local rule {index}\n"
-        ).encode("utf-8")
-
     def write_upstream(self, relative: str, content: str | bytes) -> None:
         path = self.upstream / relative
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -110,16 +99,15 @@ class SyncInstructionFilesTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.repos.close()
 
-    def test_sync_replaces_prefix_and_preserves_each_local_suffix(self) -> None:
-        expected_suffixes: dict[str, bytes] = {}
+    def test_sync_replaces_whole_file_and_keeps_local_md(self) -> None:
+        local_rules = self.repos.local / "archive/AGENTS.local.md"
+        local_rules.write_text("- private rule\n", encoding="utf-8")
         for index, relative in enumerate(self.repos.paths):
-            old_local_prefix = f"# Locally edited rules {index}\n\n".encode("utf-8")
-            suffix = self.repos.local_suffix(index)
-            expected_suffixes[relative] = suffix
-            (self.repos.local / relative).write_bytes(old_local_prefix + suffix)
-            self.repos.write_upstream(
-                relative, self.repos.upstream_content(index, 2)
+            (self.repos.local / relative).write_bytes(
+                f"# Locally edited rules {index}\n\n{MARKER}\r\n\r\n"
+                f"<!-- 旧注释 {index} -->\r\n".encode("utf-8")
             )
+            self.repos.write_upstream(relative, self.repos.upstream_content(index, 2))
         self.repos.commit_upstream("update public instruction rules")
         unlisted = self.repos.local / "projects/private/AGENTS.md"
         unlisted.parent.mkdir(parents=True)
@@ -130,15 +118,32 @@ class SyncInstructionFilesTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("Synchronized 3 instruction file(s).", result.stdout)
         for index, relative in enumerate(self.repos.paths):
-            updated = (self.repos.local / relative).read_bytes()
-            expected_prefix = f"# Public rules {index} v2\n\n".encode("utf-8")
-            self.assertTrue(updated.startswith(expected_prefix))
-            self.assertEqual(updated[len(expected_prefix) :], expected_suffixes[relative])
+            self.assertEqual(
+                (self.repos.local / relative).read_text(encoding="utf-8"),
+                self.repos.upstream_content(index, 2),
+            )
+        self.assertEqual(local_rules.read_text(encoding="utf-8"), "- private rule\n")
         self.assertEqual(unlisted.read_text(encoding="utf-8"), "private rules\n")
 
         repeated = self.repos.invoke()
         self.assertEqual(repeated.returncode, 0, repeated.stdout + repeated.stderr)
         self.assertIn("Synchronized 0 instruction file(s).", repeated.stdout)
+
+    def test_rules_below_marker_abort_all_writes(self) -> None:
+        first, second = self.repos.paths[:2]
+        before_first = (self.repos.local / first).read_bytes()
+        (self.repos.local / second).write_text(
+            f"# Local rules\n\n{MARKER}\n\n- legacy local rule\n", encoding="utf-8"
+        )
+        self.repos.write_upstream(first, self.repos.upstream_content(0, 2))
+        self.repos.commit_upstream("update beside legacy rules")
+
+        result = self.repos.invoke()
+
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("[conflict] archive/AGENTS.md", result.stdout)
+        self.assertIn("must move to archive/AGENTS.local.md", result.stdout)
+        self.assertEqual((self.repos.local / first).read_bytes(), before_first)
 
     def test_check_reports_without_writing(self) -> None:
         relative = self.repos.paths[0]

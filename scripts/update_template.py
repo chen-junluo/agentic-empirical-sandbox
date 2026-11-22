@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -21,6 +22,9 @@ MANIFEST_PATH = Path("scripts/template_manifest.json")
 STATE_PATH = Path(".agentic-sandbox-state.json")
 MARKER = b"## User-Specific Rules"
 VALID_TYPES = {"file", "instruction", "placeholder"}
+# Lines allowed below the marker: the pointer to the gitignored local rules file.
+LOCAL_RULES_POINTER = re.compile(r"若同目录存在\s*`[^`\n]+\.local\.md`[^\n]*")
+HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
 STATUS_ORDER = {
     "conflict": 0,
     "safe update": 1,
@@ -291,19 +295,25 @@ def managed_content(
     return prefix
 
 
-def build_replacement(
-    managed: ManagedFile,
-    upstream_content: bytes,
-    local_content: Optional[bytes],
-) -> bytes:
-    if managed.file_type != "instruction" or local_content is None:
-        return upstream_content
-    upstream_prefix, _ = instruction_parts(upstream_content, managed.path, "upstream")
-    _, local_user_section = instruction_parts(local_content, managed.path, "local")
-    return upstream_prefix + local_user_section
+def local_rules_path(path: str) -> str:
+    managed_path = PurePosixPath(path)
+    return managed_path.with_name(f"{managed_path.stem}.local.md").as_posix()
 
 
-def plan_file(
+def user_rules_problem(content: bytes, path: str) -> Optional[str]:
+    """Return an error when real rules sit below the marker instead of in *.local.md."""
+    _, section = instruction_parts(content, path, "local")
+    body = "\n".join(section.decode("utf-8", errors="replace").splitlines()[1:])
+    remaining = LOCAL_RULES_POINTER.sub("", HTML_COMMENT.sub("", body)).strip()
+    if not remaining:
+        return None
+    return (
+        f"content below {MARKER.decode()} must move to {local_rules_path(path)}; "
+        "leave only the upstream pointer line below the marker"
+    )
+
+
+def three_way_plan(
     managed: ManagedFile,
     baseline: Optional[bytes],
     local: Optional[bytes],
@@ -333,7 +343,7 @@ def plan_file(
                 managed,
                 "add",
                 "new allowlisted upstream file",
-                build_replacement(managed, upstream, local),
+                upstream,
             )
         if local_managed == upstream_managed:
             return FilePlan(managed, "unchanged", "already matches the upstream addition")
@@ -365,13 +375,37 @@ def plan_file(
             managed,
             "safe update",
             "upstream changed and local managed content still matches the baseline",
-            build_replacement(managed, upstream, local),
+            upstream,
         )
     return FilePlan(
         managed,
         "conflict",
         "local and upstream managed content both changed relative to the baseline",
     )
+
+
+def plan_file(
+    managed: ManagedFile,
+    baseline: Optional[bytes],
+    local: Optional[bytes],
+    upstream: Optional[bytes],
+    local_error: Optional[str],
+) -> FilePlan:
+    plan = three_way_plan(managed, baseline, local, upstream, local_error)
+    if plan.status == "conflict" or managed.file_type != "instruction" or local is None:
+        return plan
+    problem = user_rules_problem(local, managed.path)
+    if problem:
+        return FilePlan(managed, "conflict", problem)
+    if plan.status == "unchanged" and upstream is not None and local != upstream:
+        # Public rules match; only the comment/pointer section below the marker differs.
+        return FilePlan(
+            managed,
+            "safe update",
+            "public rules match; refresh the pointer section below the marker",
+            upstream,
+        )
+    return plan
 
 
 def analyze(repo_root: Path) -> Analysis:

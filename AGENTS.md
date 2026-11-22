@@ -84,16 +84,30 @@
   - `python3 scripts/update_template.py check`
   - `python3 scripts/update_template.py apply`
   - 完成后运行 `git diff`；updater 不会自动 commit
-- 所有允许用户定制的 instruction files 都必须且只能包含一个 `## User-Specific Rules` marker：
-  - marker 之前是 upstream-managed public rules
-  - marker 本身及其后全部内容是 user-specific content
-  - shared、tool-neutral 的自定义规则放在 `AGENTS.md` marker 后
-  - Claude Code-specific additions 放在对应 `CLAUDE.md` marker 后
+- 所有 instruction files 整体由 upstream 管理，末尾保留唯一的 `## User-Specific Rules` marker，marker 后只有一行指向同目录 `.local.md` 的 pointer
+- 用户自定义规则写在同目录 gitignored 的 `*.local.md`：
+  - shared、tool-neutral 规则写 `AGENTS.local.md`，Claude Code-specific additions 写 `CLAUDE.local.md`
+  - 冲突时以 `.local.md` 为准；updater 和 `sync_instruction_files.py` 不读取也不修改 `.local.md`
+  - 如果 marker 后有 pointer 和 HTML comment 以外的内容，updater 报 `conflict` 并停止，处理方式见第 6 节
 - updater 只处理 `scripts/template_manifest.json` 明确列出的 paths，不通过 recursive scan 扩大 managed scope。
 - 未列入 manifest 的文件、实际研究数据、archive materials 和用户创建的 project content 默认受保护。
 
 ---
-## 6. Cairnwork integration
+## 6. Upstream 更新冲突处理
+
+- 适用：`update_template.py check`/`apply` 或 `sync_instruction_files.py` 报 `conflict` 时，先读报错原文，再按下列 case 处理
+  - 不在下列 case 中的 conflict：向用户报告文件和原因，不要为了让更新通过而自行修改 managed 文件
+- Case 1：marker 后仍有旧版 user-specific rules，报错含 `must move to <path>.local.md`
+  - 先列出涉及的文件和 marker 后的原文，询问用户是否迁移到对应 `.local.md`；用户拒绝则停止，不改任何文件
+  - 用户同意后由 agent 直接迁移，不写脚本：
+    - 把 marker 后除 pointer 行和 HTML comment 以外的内容原样移到同目录 `.local.md`：`AGENTS.md` → `AGENTS.local.md`，`CLAUDE.md` → `CLAUDE.local.md`
+    - 目标 `.local.md` 已存在时追加到末尾，不覆盖已有内容
+    - 从原文件删除已迁移内容，保留 marker，不改 marker 之前的内容
+  - 迁移后重新预览（`update_template.py check` 或 `sync_instruction_files.py --check`），确认该 conflict 消失，再按用户原本的要求继续执行
+  - 提醒用户：`*.local.md` 被 gitignored，迁移后的规则不再进入 git history，需要时自行备份
+
+---
+## 7. Cairnwork integration
 
 - Cairnwork 的 canonical role contracts 位于独立的 Cairnwork checkout：
   `${CAIRNWORK_ROOT}/agents/`。
@@ -106,4 +120,4 @@
 ---
 ## User-Specific Rules
 
-<!-- 在此添加 tool-neutral、workspace-specific rules -->
+若同目录存在 `AGENTS.local.md`，在执行任务前读取并遵守其中规则；冲突时以 `.local.md` 为准。
